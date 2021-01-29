@@ -1,0 +1,364 @@
+-- DEFINITIONS
+set translation to "ESV"
+set booklist to {"1 Peter", "2 Peter", "1 John", "2 John", "3 John"} -- if I want to export multiple books at one go, I can enter them here
+set bookamount to count of booklist
+set chapterlist to {5, 3, 5, 1, 1} -- The chapters of the books above
+
+-- When there is a space in the book title, it needs to be encoded for the link to work. So instead of a SPACE, write "%20"
+set encodeq to true
+if encodeq is true then
+	set encodelist to {"1%20Peter", "2%20Peter", "1%20John", "2%20John", "3%20John"}
+end if
+
+set chapter to 1
+set listid to 1
+set encodeid to 1
+
+set DelayStart to 4
+set DelayLong to 2
+set DelayMed to 1
+set DelayShort to 0.2
+
+set taboneX to 134
+set taboneY to 60
+
+set tabtwoX to 335
+set tabtwoY to 60
+
+-- #PREPARE
+
+-- ##STARTUP DIALOGUE
+(* display dialog "Are Safari and Atom open?" buttons {"No", "Yes"} default button "Yes"
+
+if {button returned:"No"} then *)
+
+-- SAFARI
+
+tell application "Safari"
+	activate
+end tell
+
+delay DelayStart
+
+-- START ATOM
+
+tell application "Atom"
+	activate
+	delay DelayStart
+end tell
+
+delay DelayLong
+
+-- end if
+
+(* if {button returned:"Yes"} then
+	
+	tell application "Atom"
+		activate
+		delay DelayMed
+	end tell
+	
+end if *)
+
+-- ENABLE REGREX
+
+tell application "System Events"
+	keystroke "f" using command down
+	delay DelayLong
+	
+	set secondX to 1121
+	set secondY to 674
+	
+	do shell script "eval $(/usr/libexec/path_helper -s); cliclick c:" & secondX & "," & secondY
+	
+	delay DelayMed
+	
+	-- CREATE NEW TAB AND CHOOSE TAB ONE
+	
+	tell application "System Events"
+		keystroke "n" using command down
+		DelayMed
+		do shell script "eval $(/usr/libexec/path_helper -s); cliclick c:" & taboneX & "," & taboneY
+	end tell
+	
+end tell
+
+delay DelayMed
+
+-- #BOOK LOOP
+
+repeat bookamount times
+	
+	-- DEFINITIONS
+	
+	set book to (item listid) of booklist
+	set maxchapter to (item listid) of chapterlist
+	if encodeq is true then
+		set encodelink to (item encodeid) of encodelist
+		
+	end if
+	
+	if chapter > maxchapter then
+		if encodeq is true then
+			set encodeid to encodeid + 1
+			set encodelink to (item encodeid) of encodelist
+		end if
+		
+		set listid to listid + 1
+		set book to (item listid) of booklist
+		set maxchapter to (item listid) of chapterlist
+		set chapter to 1
+	end if
+	
+	
+	delay DelayStart
+	
+	-- #LOOP
+	
+	repeat until (chapter > maxchapter)
+		
+		-- OPEN SAFARI TAB
+		
+		tell application "Safari"
+			activate
+			delay DelayMed
+			tell window 1
+				if encodeq is false then
+					set current tab to (make new tab with properties {URL:"https://www.biblegateway.com/passage/?search=" & book & "%20" & chapter & "&version=" & translation & "&interface=print"})
+				end if
+				
+				if encodeq is true then
+					set current tab to (make new tab with properties {URL:"https://www.biblegateway.com/passage/?search=" & encodelink & "%20" & chapter & "&version=" & translation & "&interface=print"})
+				end if
+			end tell
+		end tell
+		
+		delay DelayStart
+		
+		-- COPY EVERYTHING
+		
+		tell application "System Events"
+			keystroke "a" using command down
+			delay DelayShort
+			keystroke "c" using command down
+		end tell
+		
+		delay DelayMed
+		
+		tell application "Safari"
+			activate
+			tell window 1
+				close current tab
+			end tell
+		end tell
+		
+		delay DelayMed
+		
+		-- OPEN ATOM
+		
+		tell application "Atom"
+			activate
+		end tell
+		
+		delay DelayMed
+		
+		--tell application "SizeUp" to do action Full Screen
+		
+		DelayShort
+		
+		-- CLICK INTO TEXT FIELD
+		
+		do shell script "eval $(/usr/libexec/path_helper -s); cliclick c:" & taboneX & "," & taboneY
+		
+		set firstX to 46
+		set firstY to 86
+		
+		do shell script "eval $(/usr/libexec/path_helper -s); cliclick c:" & firstX & "," & firstY
+		
+		delay DelayMed
+		
+		-- PASTE INTO ATOM
+		
+		tell application "System Events"
+			--	keystroke "a" using command down
+			--	delay DelayShort
+			-- key code 51 -- delete
+			delay DelayShort
+			keystroke "v" using command down
+			delay DelayShort
+			
+			-- CLEAN TOP UP
+			
+			key code 126 using command down --top of page
+			delay DelayShort
+			repeat 3 times
+				key code 125 using shift down
+				delay DelayShort
+			end repeat
+			key code 51 --delete
+			delay DelayShort
+			
+			-- CLEAN BOTTOM UP
+			key code 125 using command down --bottom of page
+			repeat 7 times
+				key code 126 using shift down
+				delay DelayShort
+			end repeat
+			-- repeat 5 times -- Proverbs: 7 times
+			key code 51 --delete
+			delay DelayShort
+			-- end repeat
+			
+			-- FIX FIRST NUMBER
+			
+			key code 126 using command down --top of page
+			delay DelayShort
+			key code 124 --move right
+			delay DelayShort
+			key code 51 -- delete
+			if chapter > 9 then
+				delay DelayShort
+				key code 124 --move right
+				delay DelayShort
+				key code 51 -- delete
+			end if
+			delay DelayShort
+			keystroke "1"
+			
+			
+			-- START SEARCH
+			delay DelayMed
+			keystroke "f" using command down
+			delay DelayMed
+			
+			-- ENTER REGREX CODE
+			keystroke "([0-9]|[1-9][0-9]|100)"
+			key code "26" using {shift down, option down} -- write "\"
+			keystroke "s"
+			delay DelayMed
+			key code 48 -- tab
+			delay DelayShort
+			keystroke "a" using command down
+			key code 51 -- delete
+			
+			delay DelayShort
+			key code "26" using {shift down, option down} -- write "\"
+			keystroke "n "
+			key code "26" using {shift down, option down} -- write "\"
+			keystroke "n### " & book & " " & chapter & ":$1"
+			key code "26" using {shift down, option down} -- write "\"
+			keystroke "n"
+			delay DelayMed
+			
+			-- FORMAT USING REGREX	
+			
+			key code 36 using command down
+			
+			-- DELETE DOUBLE LINES
+			
+			delay DelayMed
+			keystroke "f" using command down
+			delay DelayShort
+			key code 51 -- delete
+			delay DelayShort
+			key code "26" using {shift down, option down} -- write "\"
+			keystroke "n*"
+			key code "26" using {shift down, option down} -- write "\"
+			keystroke "n"
+			
+			delay DelayShort
+			key code 48 -- tab
+			delay DelayShort
+			keystroke "a" using command down
+			key code 51 -- delete
+			delay DelayShort
+			key code "26" using {shift down, option down} -- write "\"
+			keystroke "n"
+			delay DelayMed
+			
+			key code 36 using command down
+			
+			-- DELETE LINE ON TOP
+			delay DelayShort
+			do shell script "eval $(/usr/libexec/path_helper -s); cliclick c:" & firstX & "," & firstY
+			delay DelayShort
+			key code 126 using command down --top of page
+			delay DelayShort
+			keystroke "## " & book & " " & chapter
+			delay DelayShort
+			
+			-- CLEAN UP BOTTOM
+			key code 125 using command down --bottom of page
+			delay DelayShort
+			repeat 2 times
+				key code 36
+				DelayShort
+			end repeat
+			
+			key code 51 --delete
+			delay DelayShort
+			
+			--- ADD LINE
+			
+			keystroke "***"
+			delay DelayShort
+			
+			-- CUT ALL
+			keystroke "a" using command down
+			delay DelayShort
+			keystroke "x" using command down
+			delay DelayShort
+			
+			-- PASTE IN NEW TAB
+			
+			do shell script "eval $(/usr/libexec/path_helper -s); cliclick c:" & tabtwoX & "," & tabtwoY
+			
+			keystroke "v" using command down
+			DelayShort
+			repeat 2 times
+				key code 36
+				DelayShort
+			end repeat
+			delay DelayMed
+			
+			if chapter = maxchapter then
+				
+				-- SAVE TAB TWO
+				
+				keystroke "s" using {shift down, command down}
+				delay DelayMed
+				keystroke book & ".md"
+				delay DelayMed
+				key code 36
+				delay DelayMed
+				
+				-- CLOSE TAB TWO AND NEW TAB
+				keystroke "w" using command down
+				delay DelayMed
+				keystroke "n" using command down
+				delay DelayMed
+				do shell script "eval $(/usr/libexec/path_helper -s); cliclick c:" & taboneX & "," & taboneY
+				
+			end if
+			
+			
+		end tell
+		
+		-- CHAPTER COUNT
+		
+		set chapter to chapter + 1
+		log chapter
+		
+	end repeat
+end repeat
+
+-- NOTIFICATION
+-- display dialog "Transferred books of the bible!"
+
+tell application "Atom"
+	quit
+end tell
+
+tell application "Safari"
+	quit
+end tell
